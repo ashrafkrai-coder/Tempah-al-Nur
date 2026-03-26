@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tempahan Surau al-Nur</title>
-<link rel="manifest" href="manifest.json?v=6">
-<link rel="icon" type="image/png" sizes="16x16" href="icons/app-icon-32.png?v=6">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/app-icon-32.png?v=6">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/app-icon-192.png?v=6">
-<link rel="shortcut icon" href="icons/app-icon-32.png?v=6">
-<link rel="apple-touch-icon" sizes="192x192" href="icons/app-icon-192.png?v=6">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/app-icon-32.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/app-icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/app-icon-192.png">
+<link rel="shortcut icon" href="./icons/app-icon-32.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./icons/app-icon-192.png">
 <meta name="theme-color" content="#2e7d32">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -519,7 +519,7 @@ window.addEventListener('load', updateInstallUi);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=10').catch(err => {
+    navigator.serviceWorker.register('./service-worker.js?v=11').catch(err => {
       console.error('Service worker registration failed:', err);
     });
   });
