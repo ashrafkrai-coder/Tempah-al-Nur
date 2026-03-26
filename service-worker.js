@@ -1,9 +1,12 @@
-const cacheName = 'surau-v9';
+const cacheName = 'surau-v10';
 const staticAssets = [
   './',
   './index.html',
-  './manifest.json?v=5',
+  './manifest.json?v=6',
   './manifest.json',
+  './icons/app-icon-32.png?v=6',
+  './icons/app-icon-192.png?v=6',
+  './icons/app-icon-512.png?v=6',
   './icons/app-icon-32.png',
   './icons/app-icon-192.png',
   './icons/app-icon-512.png',
