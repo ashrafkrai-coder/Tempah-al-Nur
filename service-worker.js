@@ -1,11 +1,11 @@
-const cacheName = 'surau-v7';
+const cacheName = 'surau-v8';
 const staticAssets = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon32.png',
-  './icons/icon192.png',
-  './icons/icon512.png',
+  './icons/app-icon-32.png',
+  './icons/app-icon-192.png',
+  './icons/app-icon-512.png',
 ];
 
 // Peringkat pemasangan: simpan aset dalam cache

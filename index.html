@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tempahan Surau al-Nur</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/icon32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon192.png">
-<link rel="apple-touch-icon" sizes="192x192" href="icons/icon192.png">
+<link rel="manifest" href="manifest.json?v=4">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/app-icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/app-icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/app-icon-192.png">
 <meta name="theme-color" content="#2e7d32">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,6 +74,9 @@
     border: 1px solid #c9ded2;
     background: #fff;
     color: var(--brand);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     border-radius: 999px;
     padding: 0.5rem 0.95rem;
     font-weight: 700;
@@ -85,6 +88,17 @@
   .btn-install:hover {
     border-color: #9fb9ad;
     background-color: #f3faf6;
+  }
+
+  .btn-install[disabled] {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .install-hint {
+    margin: 0.45rem 0 0;
+    color: var(--muted);
+    font-size: 0.84rem;
   }
 
   .layout {
@@ -231,7 +245,13 @@
     <h1>Tempahan Surau al-Nur</h1>
     <p>Sistem tempahan ringkas, kemas dan teratur</p>
     <div class="install-wrap">
-      <button id="installBtn" type="button" class="btn-install" hidden>Install App</button>
+      <button id="installBtn" type="button" class="btn-install">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="installBtnLabel">Install App</span>
+      </button>
+      <p id="installHint" class="install-hint">Jika butang ini tidak buka popup, guna menu browser untuk install app.</p>
     </div>
   </header>
 
@@ -437,27 +457,63 @@ fetchBookings();
 
 let deferredInstallPrompt = null;
 const installBtn = document.getElementById('installBtn');
+const installBtnLabel = document.getElementById('installBtnLabel');
+const installHint = document.getElementById('installHint');
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function updateInstallUi() {
+  if (isStandaloneMode()) {
+    installBtn.hidden = true;
+    installHint.textContent = "App sudah dipasang pada peranti ini.";
+    return;
+  }
+
+  installBtn.hidden = false;
+  installBtn.disabled = false;
+
+  if (deferredInstallPrompt) {
+    installBtnLabel.textContent = "Install App";
+    installHint.textContent = "Tekan butang untuk install terus.";
+    return;
+  }
+
+  installBtnLabel.textContent = "Cara Install App";
+  installHint.textContent = "Popup auto mungkin tak disokong. Tekan butang untuk lihat langkah manual.";
+}
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredInstallPrompt = e;
-  installBtn.hidden = false;
+  updateInstallUi();
 });
 
 installBtn.addEventListener('click', async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  const choiceResult = await deferredInstallPrompt.userChoice;
-  if (choiceResult.outcome === 'accepted') {
-    installBtn.hidden = true;
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const choiceResult = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (choiceResult.outcome === 'accepted') {
+      installBtn.hidden = true;
+      installHint.textContent = "Pemasangan diterima.";
+      return;
+    }
+    updateInstallUi();
+    return;
   }
-  deferredInstallPrompt = null;
+
+  alert("Cara manual install:\n1) Buka menu browser (ikon tiga titik / Share)\n2) Pilih 'Install app' atau 'Add to Home Screen'\n3) Sahkan pemasangan.");
 });
 
 window.addEventListener('appinstalled', () => {
   installBtn.hidden = true;
   deferredInstallPrompt = null;
+  installHint.textContent = "App berjaya dipasang.";
 });
+
+window.addEventListener('load', updateInstallUi);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

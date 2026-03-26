@@ -4,31 +4,31 @@
   "id": "./",
   "icons": [
     {
-      "src": "icons/icon32.png",
+      "src": "icons/app-icon-32.png",
       "type": "image/png",
       "sizes": "32x32",
       "purpose": "any"
     },
     {
-      "src": "icons/icon192.png",
+      "src": "icons/app-icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "icons/icon512.png",
+      "src": "icons/app-icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "icons/icon192.png",
+      "src": "icons/app-icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "icons/icon512.png",
+      "src": "icons/app-icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
