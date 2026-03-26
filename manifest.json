@@ -1,6 +1,7 @@
 {
   "short_name": "SurauAlNur",
   "name": "Sistem Tempahan Surau al-Nur",
+  "id": "./",
   "icons": [
     {
       "src": "icons/icon32.png",
@@ -8,18 +9,18 @@
       "sizes": "32x32"
     },
     {
-      "src": "icons/icon512.png",
+      "src": "icons/icon192.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "192x192"
     },
     {
-      "src": "icons/icon912.png",
+      "src": "icons/icon512.png",
       "type": "image/png",
-      "sizes": "912x912",
+      "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "./",
   "background_color": "#ffffff",
   "display": "standalone",
   "scope": "./",

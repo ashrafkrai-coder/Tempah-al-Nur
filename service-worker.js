@@ -1,18 +1,27 @@
-const cacheName = 'surau-v5';
+const cacheName = 'surau-v6';
 const staticAssets = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon32.png',
+  './icons/icon192.png',
   './icons/icon512.png',
-  './icons/icon912.png'
 ];
 
 // Peringkat pemasangan: simpan aset dalam cache
-self.addEventListener('install', async e => {
-  const cache = await caches.open(cacheName);
-  await cache.addAll(staticAssets);
-  return self.skipWaiting();
+self.addEventListener('install', e => {
+  e.waitUntil((async () => {
+    const cache = await caches.open(cacheName);
+    // Cache aset penting secara berasingan supaya satu fail gagal tidak gagalkan install SW.
+    await Promise.all(staticAssets.map(async asset => {
+      try {
+        await cache.add(asset);
+      } catch (err) {
+        console.warn('[SW] Gagal cache aset:', asset, err);
+      }
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 // Peringkat pengaktifan

@@ -65,6 +65,27 @@
     font-size: 0.95rem;
   }
 
+  .install-wrap {
+    margin-top: 0.9rem;
+  }
+
+  .btn-install {
+    border: 1px solid #c9ded2;
+    background: #fff;
+    color: var(--brand);
+    border-radius: 999px;
+    padding: 0.5rem 0.95rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 120ms ease, background-color 120ms ease;
+  }
+
+  .btn-install:hover {
+    border-color: #9fb9ad;
+    background-color: #f3faf6;
+  }
+
   .layout {
     display: grid;
     gap: 1.1rem;
@@ -208,6 +229,9 @@
   <header class="hero">
     <h1>Tempahan Surau al-Nur</h1>
     <p>Sistem tempahan ringkas, kemas dan teratur</p>
+    <div class="install-wrap">
+      <button id="installBtn" type="button" class="btn-install" hidden>Install App</button>
+    </div>
   </header>
 
   <section class="layout">
@@ -410,9 +434,35 @@ document.getElementById('tarikh').addEventListener('change', () => {
 });
 fetchBookings();
 
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBtn.hidden = false;
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const choiceResult = await deferredInstallPrompt.userChoice;
+  if (choiceResult.outcome === 'accepted') {
+    installBtn.hidden = true;
+  }
+  deferredInstallPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.hidden = true;
+  deferredInstallPrompt = null;
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js');
+    navigator.serviceWorker.register('./service-worker.js').catch(err => {
+      console.error('Service worker registration failed:', err);
+    });
   });
 }
 </script>
