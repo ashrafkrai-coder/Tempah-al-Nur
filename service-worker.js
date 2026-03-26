@@ -1,4 +1,4 @@
-const cacheName = 'surau-v6';
+const cacheName = 'surau-v7';
 const staticAssets = [
   './',
   './index.html',
@@ -51,6 +51,11 @@ self.addEventListener('fetch', async e => {
   }
 
   if (url.origin === location.origin) {
+    // Elak icon/manifest lama tersekat dalam cache semasa install PWA
+    if (url.pathname.endsWith('/manifest.json') || url.pathname.includes('/icons/')) {
+      e.respondWith(networkFirst(req));
+      return;
+    }
     e.respondWith(cacheFirst(req));
   } else {
     e.respondWith(networkAndCache(req));
