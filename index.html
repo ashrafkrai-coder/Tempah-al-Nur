@@ -136,16 +136,11 @@
   .btn-primary:hover { transform: translateY(-1px); }
   .btn-primary:active { transform: translateY(0); opacity: 0.95; }
 
-  .calendar-hint {
-    margin: 0 0 0.85rem;
-    color: var(--muted);
-    font-size: 0.88rem;
-  }
-
   #calendar {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.55rem;
+    margin-bottom: 1.5rem;
   }
 
   .calendar-day {
@@ -155,9 +150,12 @@
     font-size: 0.86rem;
     font-weight: 600;
     border: 1px solid transparent;
-    cursor: default;
+    cursor: pointer;
     user-select: none;
+    transition: all 0.2s;
   }
+
+  .calendar-day:hover { transform: scale(1.05); }
 
   .booked {
     background-color: #f8e0e0;
@@ -171,37 +169,22 @@
     border-color: #cde7dc;
   }
 
-  @media (min-width: 1200px) {
-    .layout { gap: 1.35rem; }
-    .card { padding: 1.4rem; }
+  .booking-card {
+    border: 1px solid var(--line);
+    border-radius: 0.8rem;
+    padding: 0.85rem;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+    transition: border-color 0.2s;
   }
+  
+  .booking-card:hover { border-color: var(--brand); }
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: 1fr; }
-    body { padding-top: 1.25rem; }
-  }
-
-  @media (max-width: 640px) {
-    body { padding: 1rem 0.75rem 2rem; }
-    .hero { margin-bottom: 0.9rem; }
-    .hero p { font-size: 0.9rem; }
-    .card {
-      border-radius: 0.9rem;
-      padding: 1rem;
-    }
-    .card h2 { margin-bottom: 0.7rem; }
-    .row-2 { grid-template-columns: 1fr; }
-    #calendar { gap: 0.45rem; }
-    .calendar-day {
-      padding: 0.52rem 0.2rem;
-      font-size: 0.8rem;
-    }
-    .btn-primary { padding: 0.8rem 1rem; }
-  }
-
-  @media (max-width: 380px) {
-    .hero h1 { font-size: 1.9rem; }
-    .calendar-day { font-size: 0.75rem; }
   }
 </style>
 </head>
@@ -226,14 +209,24 @@
         </div>
         <input type="text" id="tujuan" placeholder="Tujuan Aktiviti" required class="input">
         <input type="email" id="email" placeholder="Emel (untuk notifikasi)" required class="input">
-        <button type="submit" class="btn-primary">Hantar Tempahan</button>
+        <button type="submit" class="btn-primary" id="submitBtn">Hantar Tempahan</button>
       </form>
     </article>
 
     <article class="card">
-      <h2>Calendar Tempahan</h2>
-      <p class="calendar-hint">Hijau: slot tersedia | Merah: slot bertindih</p>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="!mb-0">Status Slot</h2>
+        <span class="text-[10px] uppercase font-bold text-stone-400 tracking-widest">2 Minggu Terdekat</span>
+      </div>
+      
       <div id="calendar"></div>
+
+      <div class="border-t border-stone-100 pt-4">
+        <h3 class="text-xs font-bold text-stone-500 uppercase tracking-widest mb-3">Senarai Tempahan</h3>
+        <div id="bookingList" class="max-h-[400px] overflow-y-auto pr-1">
+          <p class="text-sm text-gray-400 italic">Memuatkan data...</p>
+        </div>
+      </div>
     </article>
   </section>
 </main>
@@ -241,7 +234,7 @@
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLFxmvUNt3js9Mdi0XfxoXIDQujQ5zpOE1CClZR6XL5gnlBtXm-g8-NEo3TUn-GnAv/exec";
 
-// Generate jam dari 07:30 sampai 22:30 tiap 30 minit
+// 1. Bina pilihan masa
 function binaPilihanMasa() {
   const jamDari = document.getElementById('jamDari');
   const jamHingga = document.getElementById('jamHingga');
@@ -251,15 +244,17 @@ function binaPilihanMasa() {
     const m = String(totalMin%60).padStart(2,'0');
     times.push(`${h}:${m}`);
   }
-  jamDari.innerHTML = times.map(t=>`<option value="${t}">${t}</option>`).join('');
-  jamHingga.innerHTML = times.map(t=>`<option value="${t}">${t}</option>`).join('');
+  const options = times.map(t=>`<option value="${t}">${t}</option>`).join('');
+  jamDari.innerHTML = options;
+  jamHingga.innerHTML = options;
   jamDari.value = "07:30";
   jamHingga.value = "08:30";
 }
 binaPilihanMasa();
 
-// Fetch tempahan dari apps script
 let bookings = [];
+
+// Helper Tarikh
 function formatDateLocal(dateObj){
   const y = dateObj.getFullYear();
   const m = String(dateObj.getMonth()+1).padStart(2,'0');
@@ -269,118 +264,131 @@ function formatDateLocal(dateObj){
 
 function normalizeBookingDate(rawDate){
   if (!rawDate) return "";
-
-  // Jika sudah format YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
-
-  // Jika format DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawDate)) {
     const [d, m, y] = rawDate.split('/');
     return `${y}-${m}-${d}`;
   }
-
-  // Jika ISO datetime (contoh 2026-03-25T16:00:00.000Z)
   const dt = new Date(rawDate);
-  if (!Number.isNaN(dt.getTime())) return formatDateLocal(dt);
-
-  return String(rawDate);
+  return !Number.isNaN(dt.getTime()) ? formatDateLocal(dt) : String(rawDate);
 }
 
 function timeToMinutes(hhmm) {
-  if (!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) return NaN;
   const [h, m] = hhmm.split(':').map(Number);
   return (h * 60) + m;
 }
 
 function parseSlotRange(slotRaw) {
-  if (!slotRaw) return null;
   const match = String(slotRaw).match(/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
   if (!match) return null;
-  const startMin = timeToMinutes(match[1]);
-  const endMin = timeToMinutes(match[2]);
-  if (Number.isNaN(startMin) || Number.isNaN(endMin)) return null;
-  return { startMin, endMin };
-}
-
-function hasTimeOverlap(startA, endA, startB, endB) {
-  return startA < endB && startB < endA;
+  return { startMin: timeToMinutes(match[1]), endMin: timeToMinutes(match[2]) };
 }
 
 function isDateTimeConflict(dateYmd, startTime, endTime) {
-  if (!dateYmd || !startTime || !endTime) return false;
-  const selectedStart = timeToMinutes(startTime);
-  const selectedEnd = timeToMinutes(endTime);
-  if (Number.isNaN(selectedStart) || Number.isNaN(selectedEnd)) return false;
-
+  const sStart = timeToMinutes(startTime);
+  const sEnd = timeToMinutes(endTime);
   return bookings.some(b => {
     if (normalizeBookingDate(b.tarikh) !== dateYmd) return false;
     const slot = parseSlotRange(b.slot);
-    if (!slot) return true; // fallback untuk rekod lama tanpa slot sah
-    return hasTimeOverlap(selectedStart, selectedEnd, slot.startMin, slot.endMin);
+    if (!slot) return false;
+    return sStart < slot.endMin && slot.startMin < sEnd;
   });
 }
 
+// 2. Fetch & Render
 async function fetchBookings() {
   try {
     const res = await fetch(SCRIPT_URL);
     const data = await res.json();
     bookings = Array.isArray(data) ? data : [];
-    renderCalendar();
-    validateSelectedDateAvailability();
+    renderUI();
   } catch(e) {
-    console.error("Gagal fetch bookings", e);
-    bookings = [];
-    renderCalendar();
-    validateSelectedDateAvailability();
+    console.error("Gagal fetch data", e);
+    renderUI();
   }
 }
 
-// Render calendar hijau/merah
-function renderCalendar() {
+function renderUI() {
   const calDiv = document.getElementById('calendar');
+  const listDiv = document.getElementById('bookingList');
   calDiv.innerHTML = "";
+  listDiv.innerHTML = "";
+
   const today = new Date();
   const jamDari = document.getElementById('jamDari').value;
   const jamHingga = document.getElementById('jamHingga').value;
 
-  for(let i=0;i<14;i++){ // 2 minggu
+  // A. Render Kalendar
+  for(let i=0; i<14; i++){
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate()+i);
-    const dStr = formatDateLocal(d); // YYYY-MM-DD (local timezone)
+    const dStr = formatDateLocal(d);
     const dayDiv = document.createElement('div');
     dayDiv.className = "calendar-day";
-    dayDiv.innerText = `${d.getDate()}/${d.getMonth()+1}`;
+    dayDiv.innerHTML = `<div class="text-[10px] opacity-60 uppercase">${d.toLocaleDateString('ms-MY', {weekday:'short'})}</div>${d.getDate()}/${d.getMonth()+1}`;
+    
     const hasBooking = isDateTimeConflict(dStr, jamDari, jamHingga);
     dayDiv.classList.add(hasBooking ? "booked" : "available");
+    
+    dayDiv.onclick = () => {
+      document.getElementById('tarikh').value = dStr;
+      validateSelectedDateAvailability();
+      document.getElementById('nama').focus();
+    };
     calDiv.appendChild(dayDiv);
+  }
+
+  // B. Render Senarai Kad
+  const upcoming = bookings
+    .filter(b => new Date(normalizeBookingDate(b.tarikh)) >= new Date(today.setHours(0,0,0,0)))
+    .sort((a,b) => new Date(normalizeBookingDate(a.tarikh)) - new Date(normalizeBookingDate(b.tarikh)));
+
+  if (upcoming.length === 0) {
+    listDiv.innerHTML = `<p class="text-sm text-gray-400 italic">Tiada tempahan aktif.</p>`;
+  } else {
+    upcoming.forEach(b => {
+      const card = document.createElement('div');
+      card.className = "booking-card";
+      card.innerHTML = `
+        <div class="flex-1">
+          <div class="text-[10px] font-bold text-green-700 uppercase">${b.tarikh}</div>
+          <div class="text-sm font-bold text-gray-800 leading-tight">${b.tujuan}</div>
+          <div class="text-[11px] text-gray-500">${b.nama} • ${b.unit}</div>
+        </div>
+        <div class="ml-2">
+          <span class="bg-stone-100 text-stone-600 text-[10px] px-2 py-1 rounded font-bold">${b.slot}</span>
+        </div>
+      `;
+      listDiv.appendChild(card);
+    });
   }
 }
 
+// 3. Validasi & Submit
 function validateSelectedDateAvailability() {
   const tarikhInput = document.getElementById('tarikh');
-  const selectedDate = tarikhInput.value;
   const jamDari = document.getElementById('jamDari').value;
   const jamHingga = document.getElementById('jamHingga').value;
-  if (!selectedDate) return true;
-
-  if (isDateTimeConflict(selectedDate, jamDari, jamHingga)) {
-    tarikhInput.setCustomValidity("Slot masa ini sudah bertindih dengan tempahan lain.");
+  
+  if (tarikhInput.value && isDateTimeConflict(tarikhInput.value, jamDari, jamHingga)) {
+    tarikhInput.setCustomValidity("Masa ini telah ditempah.");
     return false;
   }
-
   tarikhInput.setCustomValidity("");
   return true;
 }
 
-// Form submit
-document.getElementById('bookingForm').addEventListener('submit', async e=>{
+document.getElementById('bookingForm').addEventListener('submit', async e => {
   e.preventDefault();
+  const submitBtn = document.getElementById('submitBtn');
   const jamDari = document.getElementById('jamDari').value;
   const jamHingga = document.getElementById('jamHingga').value;
-  if(jamHingga<=jamDari){ alert("Jam Hingga mesti selepas Jam Dari"); return; }
-  if (!validateSelectedDateAvailability()) {
-    alert("Slot masa ini bertindih dengan tempahan sedia ada. Sila pilih masa lain.");
-    return;
-  }
+
+  if(jamHingga <= jamDari){ alert("Waktu tamat mestilah selepas waktu mula."); return; }
+  if(!validateSelectedDateAvailability()){ alert("Maaf, slot ini telah diambil."); return; }
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Menghantar...";
+
   const payload = {
     nama: document.getElementById('nama').value,
     unit: document.getElementById('unit').value,
@@ -389,41 +397,36 @@ document.getElementById('bookingForm').addEventListener('submit', async e=>{
     tujuan: document.getElementById('tujuan').value,
     email: document.getElementById('email').value
   };
+
   try {
-    const res = await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+    const res = await fetch(SCRIPT_URL, { method:'POST', body:JSON.stringify(payload) });
     const data = await res.json();
-    if(data.result==="error"){ alert(data.message); return; }
-    alert("Tempahan berjaya!");
+    if(data.result === "error") throw new Error(data.message);
+    alert("Tempahan Berjaya!");
     document.getElementById('bookingForm').reset();
-    binaPilihanMasa();
     fetchBookings();
-  } catch(err){
-    alert("Ralat berlaku, sila cuba lagi."); console.error(err);
+  } catch(err) {
+    alert("Ralat: " + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Hantar Tempahan";
   }
 });
 
-document.getElementById('jamDari').addEventListener('change', renderCalendar);
-document.getElementById('jamHingga').addEventListener('change', renderCalendar);
-document.getElementById('jamDari').addEventListener('change', validateSelectedDateAvailability);
-document.getElementById('jamHingga').addEventListener('change', validateSelectedDateAvailability);
-document.getElementById('tarikh').addEventListener('change', () => {
-  if (!validateSelectedDateAvailability()) {
-    alert("Slot masa ini sudah bertindih untuk tarikh dipilih.");
-  }
+// Event Listeners untuk kemas kini UI
+['jamDari', 'jamHingga'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderUI);
 });
+document.getElementById('tarikh').addEventListener('change', validateSelectedDateAvailability);
+
+// Start
 fetchBookings();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=11').catch(err => {
-      console.error('Service worker registration failed:', err);
-    });
+    navigator.serviceWorker.register('./service-worker.js?v=12');
   });
 }
 </script>
-
 </body>
 </html>
-
-
-
